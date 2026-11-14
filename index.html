@@ -1,0 +1,262 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Port City</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#120a20">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Port City">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap">
+<style>
+/* Layout: full-bleed canvas game with DOM overlays for the opening screen and dialogs.
+   Look: night-city asphalt, sodium-amber accent, siren-red for danger. Single dark theme by design. */
+:root{
+  --bg:#120a20; --ink:#eef2f7; --dim:#b9a6d6; --amber:#ff4fa8; --hot:#ff3d5a;--cyan:#27e6e0; --ok:#3ddc84;
+  --panel:rgba(11,15,22,.9); --line:rgba(255,255,255,.16);
+  --disp:'Russo One','Arial Black',Impact,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+html{overscroll-behavior:none}
+#rot{position:fixed;inset:0;z-index:50;background:#120a20;color:#eef2f7;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;font:400 22px 'Russo One',Impact,sans-serif;letter-spacing:.05em}
+#rot .ph{width:46px;height:78px;border:4px solid #ff4fa8;border-radius:10px;animation:rot 2.2s ease-in-out infinite}
+@keyframes rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (pointer:coarse){#rot{display:flex}}
+#gl,#cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+#gl{background:var(--bg)}
+.hide{display:none!important}
+#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:16px;
+  background:radial-gradient(ellipse at 50% 45%,rgba(30,8,50,.1) 0%,rgba(20,6,40,.7) 78%),linear-gradient(rgba(255,90,160,.14),rgba(40,10,90,.3))}
+#menu h1{margin:0;font:400 clamp(44px,13vw,110px)/.95 var(--disp);letter-spacing:.04em;color:#fff;transform:skewX(-8deg);text-shadow:0 0 6px var(--cyan),0 0 26px rgba(39,230,224,.7),0 4px 0 #0b5b6b;animation:flick 5s infinite}
+#menu h1 span{color:var(--amber);text-shadow:0 0 6px #ff4fa8,0 0 28px rgba(255,79,168,.8),0 4px 0 #5a0f66}
+#menu .tag{margin:0 0 14px;color:var(--dim);letter-spacing:.28em;text-transform:uppercase;font-size:12px}
+@keyframes flick{0%,92%,100%{opacity:1}93%{opacity:.55}94%{opacity:1}96%{opacity:.7}97%{opacity:1}}
+.btn{font:400 18px var(--disp);letter-spacing:.06em;color:#10131a;background:var(--amber);border:0;border-radius:6px;padding:13px 0;width:min(280px,80vw);cursor:pointer;box-shadow:0 4px 0 #7a1d63;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #7a1d63}
+.btn.alt{background:#232a38;color:var(--ink);box-shadow:0 4px 0 #0c0f16;border:1px solid var(--line)}
+.btn.alt:active{box-shadow:0 1px 0 #0c0f16}
+#menu .foot{margin-top:10px;color:var(--dim);font-size:12px;max-width:34em}
+#help{max-width:520px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:13.5px;line-height:1.55}
+#help b{color:var(--amber)}
+#help p{margin:.2em 0}
+#dlg{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(560px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--amber);border-radius:8px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#dTitle{font:400 20px var(--disp);color:var(--amber);letter-spacing:.04em;margin-bottom:4px}
+#dText{color:var(--ink);font-size:15px;line-height:1.5;margin-bottom:12px}
+#dText small{color:var(--dim)}
+#dBtns{display:flex;gap:8px;flex-wrap:wrap}
+#dBtns button{flex:1 1 120px;font:400 15px var(--disp);letter-spacing:.04em;border-radius:6px;border:1px solid var(--line);padding:11px 10px;cursor:pointer;background:#232a38;color:var(--ink)}
+#dBtns button:first-child{background:var(--amber);color:#10131a;border-color:transparent}
+.card,.sheet{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.6);touch-action:pan-y;overflow:auto;z-index:6}
+.card{left:50%;top:50%;transform:translate(-50%,-50%);width:min(580px,calc(100vw - 24px));max-height:calc(100vh - 24px)}
+.sheet{left:max(12px,env(safe-area-inset-left,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));width:min(430px,calc(100vw - 24px));max-height:calc(100vh - 24px)}
+.ttl{font:400 20px var(--disp);color:var(--amber);letter-spacing:.05em;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.ttl .cash{color:var(--ok);font-size:18px}
+.sec{margin:12px 0 6px;font:700 12px system-ui;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.sec small{text-transform:none;letter-spacing:0;font-weight:500;color:#7f8ba0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.row .lab{font-size:14px}.row .lab small{display:block;color:var(--dim);font-size:11.5px}
+.ops{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.opt{font:700 13px system-ui;color:var(--ink);background:#232a38;border:1px solid var(--line);border-radius:6px;padding:8px 12px;cursor:pointer;min-width:44px}
+.opt.on{background:var(--amber);color:#10131a;border-color:transparent}
+.opt.key{min-width:92px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.opt.done{background:var(--amber);color:#10131a;border-color:transparent;font-family:var(--disp);letter-spacing:.05em;padding:10px 22px}
+.val{min-width:40px;text-align:center;font-weight:700}
+.foot2{display:flex;justify-content:space-between;gap:8px;margin-top:14px}
+.sws{display:flex;gap:8px;flex-wrap:wrap}
+.sw{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.25);cursor:pointer;color:#ccc;font-size:16px;padding:0}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--amber)}
+#mapw{position:fixed;inset:0;z-index:7;background:rgba(10,6,24,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;touch-action:none}
+#mapcv{border-radius:14px;border:2px solid rgba(255,255,255,.3);box-shadow:0 10px 50px rgba(0,0,0,.6)}
+#mapbar{display:flex;gap:8px;align-items:center}
+#maplg{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;font-size:11.5px;color:var(--dim);max-width:92vw}
+#maplg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;border:1px solid #000}
+#avpv{display:block;margin:4px auto 6px;background:rgba(255,255,255,.06);border-radius:10px}
+</style>
+
+<canvas id="gl"></canvas>
+<canvas id="cv"></canvas>
+
+<div id="menu">
+  <h1>PORT<span>CITY</span></h1>
+  <p class="tag">Neon Beach &middot; 1986</p>
+  <button class="btn" id="bNew">NEW GAME</button>
+  <button class="btn alt hide" id="bCont">CONTINUE</button>
+  <button class="btn alt" id="bHelp">HOW TO PLAY</button>
+  <button class="btn alt" id="bAv">AVATAR</button>
+  <button class="btn alt" id="bSet">SETTINGS</button>
+  <button class="btn alt" id="bSnd">SOUND: ON</button>
+  <div id="help" class="hide"></div>
+  <div class="foot">Palm trees, neon and sunsets. Steal cars, take jobs from the locals, arm up and take over the beach city. All of it fiction.</div>
+</div>
+
+<div id="set" class="hide card"></div>
+<div id="cust" class="hide sheet"></div>
+<div id="av" class="hide card"></div>
+<div id="rot"><div class="ph"></div>ROTATE YOUR PHONE<small style="font:14px system-ui;color:#b9a6d6">Port City plays in landscape</small></div>
+<div id="mapw" class="hide"><canvas id="mapcv"></canvas><div id="maplg"><span><i style="background:#fff"></i>You</span><span><i style="background:#ffd04a"></i>Job / Gun shop</span><span><i style="background:#ff5d73"></i>Hospital</span><span><i style="background:#4fc3f7"></i>Garage</span><span><i style="background:#c77dff"></i>Wardrobe</span><span><i style="background:#9fd0ff"></i>Airport</span><span><i style="background:#fff176"></i>Bank</span></div><div id="mapbar"></div></div>
+
+<div id="dlg" class="hide">
+  <div id="dTitle"></div>
+  <div id="dText"></div>
+  <div id="dBtns"></div>
+</div>
+
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const cv=$('cv'),ctx=cv.getContext('2d');
+let VW=1,VH=1,DPR=1,GLQ=1.5;
+const SA={l:0,r:0,t:0,b:0};
+function readSA(){const d=document.createElement('div');d.style.cssText='position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)';document.body.appendChild(d);const c=getComputedStyle(d);SA.t=parseFloat(c.paddingTop)||0;SA.r=parseFloat(c.paddingRight)||0;SA.b=parseFloat(c.paddingBottom)||0;SA.l=parseFloat(c.paddingLeft)||0;d.remove();}
+addEventListener('resize',readSA);addEventListener('orientationchange',()=>setTimeout(readSA,300));window.addEventListener('load',readSA);
+function resize(){DPR=Math.min(window.devicePixelRatio||1,2);VW=window.innerWidth;VH=window.innerHeight;cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);const g=document.getElementById('gl'),q=Math.min(window.devicePixelRatio||1,GLQ);g.width=Math.round(VW*q);g.height=Math.round(VH*q);}
+window.addEventListener('resize',resize);resize();
+
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[(Math.random()*a.length)|0];
+function angDiff(a,b){let d=(b-a)%TAU;if(d>Math.PI)d-=TAU;if(d<-Math.PI)d+=TAU;return d;}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function darken(hex,amt){const n=parseInt(hex.slice(1),16);let r=(n>>16)+amt,g=((n>>8)&255)+amt,b=(n&255)+amt;r=clamp(r,0,255);g=clamp(g,0,255);b=clamp(b,0,255);return'rgb('+r+','+g+','+b+')';}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+/* ================= WORLD ================= */
+const ROAD=150,BLK=290,CELL=ROAD+BLK,N=32,OFS=11,WORLD=N*CELL+ROAD,SWK=18,LANE=ROAD/4;
+const rc=i=>i*CELL+ROAD/2;
+const rcO=k=>rc(k+OFS);
+const SPECIAL={};[[4,3,'hospital'],[3,6,'garage'],[6,4,'ammu'],[7,7,'bank']].forEach(a=>{SPECIAL[(a[0]+OFS)+','+(a[1]+OFS)]=a[2];});
+const AP={i0:24,i1:27,j0:13,j1:15}; // airport: 4 x 3 blocks, east of downtown
+const RW={xs:AP.i0*CELL+ROAD+30,xe:AP.i1*CELL+ROAD+BLK-30,zc:(AP.j0+1)*CELL+ROAD+BLK/2,hw:45};
+const SPCOL={hospital:'#dfe7f0',garage:'#6b7280',ammu:'#7d3a3a',bank:'#b9a35c'};
+const SPLBL={hospital:'HOSPITAL',garage:'GARAGE',ammu:'GUN SHOP',bank:'CITY BANK'};
+const PAL=['#f6a5c8','#8fe3d9','#ffd0a0','#c3a6f0','#f4f1e6','#ff9fa8','#9fd8f5','#fff0a8','#a8f0c0'];
+const blocks=[];
+(function genWorld(){
+  const wr=mulberry(20261107);
+  for(let i=0;i<N;i++){blocks[i]=[];for(let j=0;j<N;j++){
+    const b={i,j,x:i*CELL+ROAD,y:j*CELL+ROAD,kind:'city',bl:[],trees:[]};
+    const sp=SPECIAL[i+','+j];
+    const x=b.x+SWK,y=b.y+SWK,s=BLK-2*SWK;
+    const add=(bx,by,bw,bh,col,spk)=>{const ins=spk?10:wr()*5;const c=col||PAL[(wr()*PAL.length)|0];
+      b.bl.push({x:bx+ins,y:by+ins,w:bw-2*ins,h:bh-2*ins,c,cd:darken(c,-38),k:wr(),sp:spk});};
+    const inner=(i>=4+OFS&&i<=6+OFS&&j>=4+OFS&&j<=6+OFS);
+    const inAP=i>=AP.i0&&i<=AP.i1&&j>=AP.j0&&j<=AP.j1;
+    const farOut=Math.hypot(i-OFS-4.5,j-OFS-4.5)>9;
+    if(inAP){b.kind='airport';const ci=i-AP.i0,cj=j-AP.j0;
+      const A=(ax,ay,w,h,col,spk,extra)=>{const q={x:b.x+ax,y:b.y+ay,w,h,c:col,cd:col,k:wr(),sp:spk};if(extra)Object.assign(q,extra);b.bl.push(q);};
+      if(cj===0){if(ci===0||ci===3)A(30,70,230,190,'#8c96a6','ap_hangar',{face:1});else{A(10,110,270,140,'#bcd6ee','ap_term',{gap:ci===1});if(ci===1)A(222,40,40,40,'#cfd6e0','ap_tower');}}
+      else if(cj===1){if(ci===0){A(40,14,70,70,'#e8ecf2','ap_plane');A(170,14,70,70,'#e8ecf2','ap_plane');}else if(ci===1)A(100,14,70,70,'#e8ecf2','ap_plane');else if(ci===3)A(60,14,70,70,'#e8ecf2','ap_plane');}
+      else{if(ci===0||ci===3)A(30,30,230,170,'#8c96a6','ap_hangar',{face:-1});else if(ci===1){A(40,50,60,60,'#e8ebf0','ap_fuel');A(150,50,60,60,'#e8ebf0','ap_fuel');A(95,160,60,60,'#e8ebf0','ap_fuel');}}
+    }
+    else if(sp){b.kind=sp;add(x,y,s,s,SPCOL[sp],sp);}
+    else if(wr()<(farOut?0.26:0.15)&&!inner){b.kind='park';for(let t=0;t<11;t++)b.trees.push({x:b.x+SWK+14+wr()*(s-28),y:b.y+SWK+14+wr()*(s-28),r:10+wr()*9,c:wr()});}
+    else{const L=wr(),g=10;
+      if(L<.3)add(x,y,s,s);
+      else if(L<.55){const w=(s-g)/2;add(x,y,w,s);add(x+w+g,y,w,s);}
+      else if(L<.8){const h=(s-g)/2;add(x,y,s,h);add(x,y+h+g,s,h);}
+      else{const w=(s-g)/2;add(x,y,w,w);add(x+w+g,y,w,w);add(x,y+w+g,w,w);add(x+w+g,y+w+g,w,w);}
+    }
+    blocks[i][j]=b;
+  }}
+})();
+function swO(i,j,side,t){return sw(i+OFS,j+OFS,side,t);}
+function sw(i,j,side,t){const b=blocks[i][j],m=9;
+  if(side===0)return{x:b.x+t*BLK,y:b.y+m};
+  if(side===1)return{x:b.x+BLK-m,y:b.y+t*BLK};
+  if(side===2)return{x:b.x+t*BLK,y:b.y+BLK-m};
+  return{x:b.x+m,y:b.y+t*BLK};}
+
+function circRect(o,r,b){
+  const cx=clamp(o.x,b.x,b.x+b.w),cy=clamp(o.y,b.y,b.y+b.h);
+  const dx=o.x-cx,dy=o.y-cy,d2=dx*dx+dy*dy;
+  if(d2>=r*r)return false;
+  if(d2<1e-6){const l=o.x-b.x,rt=b.x+b.w-o.x,t=o.y-b.y,bt=b.y+b.h-o.y,m=Math.min(l,rt,t,bt);
+    if(m===l)o.x=b.x-r;else if(m===rt)o.x=b.x+b.w+r;else if(m===t)o.y=b.y-r;else o.y=b.y+b.h+r;return true;}
+  const d=Math.sqrt(d2);o.x=cx+dx/d*r;o.y=cy+dy/d*r;return true;
+}
+function bRange(v,r){return[clamp(Math.floor((v-r-ROAD)/CELL),0,N-1),clamp(Math.floor((v+r-ROAD)/CELL),0,N-1)];}
+function hitWorld(o,r){
+  o.x=clamp(o.x,r,WORLD-r);o.y=clamp(o.y,r,WORLD-r);
+  let hit=false;const[i0,i1]=bRange(o.x,r),[j0,j1]=bRange(o.y,r);
+  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const b=blocks[i][j];if(b.kind==='park')continue;
+    for(const q of b.bl){if(circRect(o,r,q))hit=true;}}
+  return hit;
+}
+function blockedAt(x,y,r){return hitWorld({x,y},r);}
+function inBuilding(x,y){
+  if(x<0||y<0||x>WORLD||y>WORLD)return true;
+  const[i0,i1]=bRange(x,0),[j0,j1]=bRange(y,0);
+  for(let i=i0;i<=i1;i++)for(let j=j0;j<=j1;j++){const b=blocks[i][j];if(b.kind==='park')continue;
+    for(const q of b.bl)if(x>q.x&&x<q.x+q.w&&y>q.y&&y<q.y+q.h)return true;}
+  return false;
+}
+function pushCircle(o,r,cx,cy,cr){const dx=o.x-cx,dy=o.y-cy,d=Math.hypot(dx,dy),m=r+cr;if(d<m&&d>0.001){o.x=cx+dx/d*m;o.y=cy+dy/d*m;return true;}return false;}
+
+/* minimap raster */
+const MS=0.16,mini=document.createElement('canvas');mini.width=mini.height=Math.ceil(WORLD*MS);
+(function(){const m=mini.getContext('2d');m.fillStyle='#d6d9e4';m.fillRect(0,0,mini.width,mini.height);m.scale(MS,MS);
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){const b=blocks[i][j];
+    m.fillStyle=b.kind==='park'?'#49b36a':b.kind==='airport'?'#b3bac6':'#6f8fc9';m.fillRect(b.x,b.y,BLK,BLK);
+    for(const q of b.bl){m.fillStyle=q.sp?q.c:'#4f6fab';m.fillRect(q.x,q.y,q.w,q.h);}}
+  m.fillStyle='#3a3d45';m.fillRect(RW.xs,RW.zc-RW.hw,RW.xe-RW.xs,RW.hw*2);m.fillStyle='#f5f5f0';m.fillRect(RW.xs+30,RW.zc-3,RW.xe-RW.xs-60,6);
+})();
+
+/* ================= SETTINGS ================= */
+const SET={cam:'chase',time:'dusk',quality:'high',steer:'stick',sens:1,assist:true};
+const BIND={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD',act:'Enter',swap:'NumpadAdd',hb:'Space',fire:'Numpad0',cam:'KeyV',radio:'KeyR'};
+const BIND_DEF=Object.assign({},BIND);
+let custCar=null;
+const AV={skin:'#f1c9a5',shirt:'#2b9d8a',pants:'#243567',hair:'#2a1d12',hat:0,hatc:'#ff5fa8',shades:false};
+function saveAv(){try{localStorage.setItem('portcity_av',JSON.stringify(AV));}catch(e){}}
+(function(){try{const d=JSON.parse(localStorage.getItem('portcity_av')||'null');if(d)Object.assign(AV,d);}catch(e){}})();
+/* ================= STATE ================= */
+const WEAP=[
+  {n:'Pistol',rate:.32,dmg:26,spd:15,spread:.03,pel:1,mag:'PISTOL'},
+  {n:'SMG',rate:.085,dmg:12,spd:16.5,spread:.1,pel:1,mag:'SMG'},
+  {n:'Shotgun',rate:.85,dmg:14,spd:14.5,spread:.2,pel:7,mag:'SHOTGUN'},
+  {n:'Assault Rifle',rate:.11,dmg:19,spd:18,spread:.05,pel:1,mag:'RIFLE'},
+  {n:'Magnum',rate:.6,dmg:55,spd:20,spread:.015,pel:1,mag:'MAGNUM'},
+  {n:'Sniper',rate:1.15,dmg:100,spd:28,spread:.003,pel:1,mag:'SNIPER'}];
+const NW=WEAP.length;
+const CARCOL=['#ff4fa0','#2ee6d6','#f5f0e6','#ffd24a','#7a5cff','#ff7a4f','#4f8fd9','#2f3441','#e8e8e8','#3ddc84'];
+const SHIRT=['#ff5fa8','#27e6e0','#ffd54f','#ff8a50','#f5f0e6','#b388ff','#7cf0a0','#ff6f6f','#58c8ff','#f06292'];
+const SKIN=['#f1c9a5','#d9a679','#a8744f','#7a4a2d','#f5d7b8'];
+const DX=[1,0,-1,0],DY=[0,1,0,-1];
+
+let state='menu',prevState='menu',gt=0,shake=0,deadT=0;
+const P={x:0,y:0,a:0,hp:100,money:0,w:0,has:[true,false,false,false,false,false],ammo:[30,0,0,0,0,0],car:null,cd:0,step:0,hurt:0,moveA:null};
+const cam={x:rcO(4),y:rcO(4),z:1};
+const F={x:0,y:0};
+let peds=[],cars=[],bullets=[],parts=[],pickups=[],decals=[],toasts=[],banners=[];
+let heat=0,heatQuiet=0,wanted=0,spawnCarT=0,spawnPedT=0,spawnCopT=0;
+const M={idx:0,active:false,stage:0,obj:'',target:null,timer:0,tmax:0,left:0,tcar:null,gang:[]};
+
+/* ================= ENTITIES ================= */
+function mkPed(x,y,type,o){o=o||{};
+  const p={x,y,a:rand(0,TAU),type,hp:type==='civ'?40:type==='cop'?70:type==='gang'?60:999,col:o.col||pick(SHIRT),skin:pick(SKIN),
+    t:rand(.5,3),idle:0,flee:0,fx:0,fy:0,fire:rand(.3,1.2),dead:false,dt:0,step:rand(0,6),seed:rand(0,9),alert:false,det:520,sd:Math.random()<.5?1:-1,leave:0,m:false,name:o.name||''};
+  peds.push(p);return p;}
+function mkCar(x,y,a,kind,o){o=o||{};
+  const c={x,y,a,spd:0,kind,col:o.col||pick(CARCOL),hp:100,maxSpd:o.maxSpd||(o.shape==='bike'?6.7:5.7),acc:o.acc||(o.shape==='bike'?.2:.15),dir:0,node:-1,burn:0,wt:0,locked:!!o.locked,sport:!!o.sport,tgt:!!o.tgt,fast:!!o.fast,stuck:0,ghost:0,lim:o.lim||rand(2.6,3.4),shape:o.shape||(o.sport?'sport':pick(POOL)),liv:o.liv==null?((Math.random()*5)|0):o.liv,rim:'#c9ced6',neon:null,spoiler:false,eng:0,mine:false};
+  cars.push(c);return c;}
+const cR=c=>c.shape==='bike'?8:13;
+function carCircles(c){const r=cR(c),cx=Math.cos(c.a)*r,cy=Math.sin(c.a)*r;return[[c.x+cx,c.y+cy],[c.x-cx,c.y-cy]];}
+function addPickup(x,y,type,o){pickups.push(Object.assign({x,y,type,cd:0,v:0,drop:false},o||{}));}
+
+function genStatic(){
+  cars=[];peds=[];pickups=[];
+  const wr=mulberry(777);
+  // parked cars on road edges
+  const pkD=(i,j)=>(Math.abs(i-OFS-4.5)<7&&Math.abs(j-OFS-4.5)<7)?.45:.16;
+  for(let j=0;j<=N;j++)for(let i=0;i<N;i++){ // horizontal roads
+    if(wr()<(i>=AP.i0&&i<=AP.i1&&j>=AP.j0&&j<=AP.j1+1?0:pkD(i,j))){const x=i*CELL+ROAD+40+wr()*(BLK-80),side=wr()<.5?1:-1;
+      mkCar(x,rc(j)+side*(ROAD/2-15),side>0?0:Math.PI,'parked',{col:CARCOL[(wr()*CARCOL.length)|0]});}}
+  for(let i=0;i<=N;i++)for(let j=0;j<N;j++){ // vertical roads
+    if(wr()<(i>=AP.i0&&i<=AP.i1+1&&j>=AP.j0&&j<=AP.j1?0:pkD(i,j))){const y=j*CELL+ROAD+40+wr()*(BLK-80),side=wr()<.5?1:-1;
+      mkCar(rc(i)+side*(ROAD/2-15),y,side<0?Math.PI/2:-Math.PI/2,'parked',{col:CARCOL[(wr()*CARCOL.length)|
